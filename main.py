@@ -7,6 +7,9 @@ import numpy as np
 import pandas as pd
 import regex as re
 
+# Max exams in one finals day
+MAX_TESTS = 4
+
 def cleanDF(df):
     # Remove blank rows
     df = df.dropna()
@@ -40,6 +43,37 @@ def createStudentGroups(df, pop):
         courses[course] = set(students.to_numpy().flatten())
     return courses
 
+def checkStudentConflicts(students, tests, i):
+    conflict = False
+    for s in students:
+        if s in tests[i // MAX_TESTS] and tests[i // MAX_TESTS][s] == 2:
+            conflict = True
+    return conflict
+
+def checkCourseTiming(times, schedule, c, i):
+    time = False
+    currentTime = times[c]
+    # For every course already in timeslot
+    for otherCourse in schedule[i]:
+        previousTime = times[otherCourse]
+        if currentTime != previousTime:
+            time = True
+    return time
+
+def checkRepeatedStudents(students, schedule, c, i):
+    repeat = False
+    currentStudents = students[c]
+    for otherCourse in schedule[i]:
+        previousStudents = students[otherCourse]
+        if len(set.intersection(currentStudents, previousStudents)) > 0:
+            repeat = True
+    return repeat
+
+def updateStudentTests(students, tests, i):
+    for s in students:
+        tests[i // MAX_TESTS][s] = tests[i // MAX_TESTS].get(s, 0) + 1
+    return tests
+
 if __name__ == "__main__":
     # Import CSV of SID and Courses
     df = cleanDF(pd.read_csv('StudentClassDataFullSet.csv'))
@@ -49,69 +83,62 @@ if __name__ == "__main__":
     popularCourses = df.groupby(["CourseSection"], sort=False).agg(NumStudents=("SID", "count")).sort_values("NumStudents", ascending=False).index.to_numpy()
     courseStudent = createStudentGroups(df, popularCourses)
 
+    # An array of exams, each index represents 1 timeslot
     schedule = []
+    # To keep track of how many exams students have per day
     studentTests = {}
-    # For every course, ordered by popularity
+
     for course in popularCourses:
+        # The starting index for the schedule
+        # Starting at 0 to ensure students get the earliest possible slot
         index = 0
         added = False
         students = courseStudent[course]
+
         while not added:
-            studentConflict = False
-            if index > 4:
-                pass
-            if index // 4 not in studentTests:
-                studentTests[index // 4] = {}
-            # if index is empty
+            # If the current day doesn't exist in studentTests
+            if index // MAX_TESTS not in studentTests:
+                studentTests[index // MAX_TESTS] = {}
+
+            ### CASE 0: INDEX IS EMPTY
             if index + 1 > len(schedule):
-                for student in students:
-                    if student in studentTests[index // 4] and studentTests[index // 4][student] == 2:
-                        studentConflict = True
+                studentConflict = checkStudentConflicts(students, studentTests, index)
                 if not studentConflict:
-                    # add to schedule
+                    # Append course in list, as it is first item in index
                     schedule.append([course])
+                    studentTests = updateStudentTests(students, studentTests, index)
                     added = True
-                    for student in students:
-                        studentTests[index // 4][student] = studentTests[index // 4].get(student, 0) + 1
+            
+            ### CASE 1: INDEX NOT EMPTY
+            # If there are items in current index
             elif len(schedule[index]) > 0:
-                differentTime = False
-                currentTime = courseTimes[course]
-                # For every course already in slot
-                for course1 in schedule[index]:
-                    previousTime = courseTimes[course1]
-                    if currentTime != previousTime:
-                        differentTime = True
-                # If all times are the same, add to slot
-                if not differentTime:
-                    for student in students:
-                        if student in studentTests[index // 4] and studentTests[index // 4][student] == 2:
-                            studentConflict = True
-                    if not studentConflict:
-                        # add to schedule
+                differentTime = checkCourseTiming(courseTimes, schedule, course, index)
+                studentConflict = checkStudentConflicts(students, studentTests, index)
+                # If all times are same or no conflicts, add to schedule
+                ### CASE 1A: CLASS TIMES ARE THE SAME
+                if not differentTime and not studentConflict:
+                    # Add to schedule
+                    schedule[index].append(course)
+                    studentTests = updateStudentTests(students, studentTests, index)
+                    added = True
+                ### CASE 1B: NO REPEATED STUDENTS DURING TIMESLOT
+                else:
+                    repeatStudents = checkRepeatedStudents(courseStudent, schedule, course, index)
+                    studentConflict = checkStudentConflicts(students, studentTests, index)
+                    # If no repeat students or conflicts, add to schedule
+                    if not repeatStudents and not studentConflict:
                         schedule[index].append(course)
+                        studentTests = updateStudentTests(students, studentTests, index)
                         added = True
-                        for student in students:
-                            studentTests[index // 4][student] = studentTests[index // 4].get(student, 0) + 1
-                if not added:
-                    repeatStudents = False
-                    currentStudents = courseStudent[course]
-                    for course1 in schedule[index]:
-                        previousStudents = courseStudent[course1]
-                        if len(set.intersection(currentStudents, previousStudents)) > 0:
-                            repeatStudents = True
-                    # If there's no repeat students, add to schedule
-                    if not repeatStudents:
-                        for student in students:
-                            if student in studentTests[index // 4] and studentTests[index // 4][student] == 2:
-                                studentConflict = True
-                        if not studentConflict:
-                            # add to schedule
-                            schedule[index].append(course)
-                            added = True
-                            for student in students:
-                                studentTests[index // 4][student] = studentTests[index // 4].get(student, 0) + 1
+
+            ### CASE 2: NO ACCEPTABLE SLOTS FOUND
+            # Add one to index if no slot found
             index += 1
 
-    for group in schedule:
-        print(*group)
-    print(len(schedule))
+    ### PRINT THE RESULTS
+    for index in range(len(schedule)):
+        day = index // MAX_TESTS
+        time = index % MAX_TESTS
+        print(f"\n\nDAY {day + 1}: SLOT {time + 1}:")
+        print(*sorted(schedule[index]))
+    print(f"Number of slots used: {len(schedule)}")
