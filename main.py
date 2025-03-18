@@ -3,6 +3,10 @@
 #                                 Lee Cummings                                 #
 # ---------------------------------------------------------------------------- #
 
+import numpy as np
+import pandas as pd
+import regex as re
+
 def cleanDF(df):
     # Remove blank rows
     df = df.dropna()
@@ -10,50 +14,45 @@ def cleanDF(df):
     pattern = r"\w* \d{3}L-.*"
     df = df[~df["CourseSection"].str.contains(pattern)]
     df = df[~df["CourseSection"].str.contains("SIM 101")]
-    # Remove sections from course names
+    # OPTIONAL: Remove sections from course names
     # df['CourseSection'] = df['CourseSection'].str.replace(r'-.*', '', regex=True)
     return df
 
-import numpy as np
-import pandas as pd
-import regex as re
-
-if __name__ == "__main__":
-    # Import CSV of SID and Courses
-    df = pd.read_csv('StudentClassDataFullSet.csv')
-    ### DATAFRAME CLEANING
-    df = cleanDF(df)
-
-    ### ADD COURSE INFO TO DICTIONARIES AND ARRAY
-    groupedDF = df.drop('SID', axis=1).drop_duplicates().groupby(["Time Slot"], as_index=False)
-    
+def createTimeslotGroups(df):
+    df = df.drop('SID', axis=1).drop_duplicates().groupby(["Time Slot"], as_index=False)
+    times = {}
     # Dictionary of timeslot per course
-    courseTimes = {}
-    for time, frame in groupedDF:
+    for time, frame in df:
         for index, course in frame.iterrows():
             # KEY: Course ID
             # VALUE: Timeslot
-            courseTimes[course["CourseSection"]] = time[0]
-    
-    # Array of most popular courses (most students)
-    popularCourses = df.groupby(["CourseSection"], sort=False).agg(NumStudents=("SID", "count")).sort_values("NumStudents", ascending=False).index.to_numpy()
+            times[course["CourseSection"]] = time[0]
+    return times
 
+def createStudentGroups(df, pop):
+    courses = {}
     # Dictionary of students per course
-    courseStudent = {}
-    for course in popularCourses:
+    for course in pop:
         # Get a df of all students in a class
         students = df.loc[df['CourseSection'] == course]["SID"]
         # KEY: Course ID
         # VALUE: Set of student
-        courseStudent[course] = set(students.to_numpy().flatten())
+        courses[course] = set(students.to_numpy().flatten())
+    return courses
+
+if __name__ == "__main__":
+    # Import CSV of SID and Courses
+    df = cleanDF(pd.read_csv('StudentClassDataFullSet.csv'))
+    courseTimes = createTimeslotGroups(df)
+
+    # Array of most popular courses (most students)
+    popularCourses = df.groupby(["CourseSection"], sort=False).agg(NumStudents=("SID", "count")).sort_values("NumStudents", ascending=False).index.to_numpy()
+    courseStudent = createStudentGroups(df, popularCourses)
 
     schedule = []
     studentTests = {}
     # For every course, ordered by popularity
     for course in popularCourses:
-        if course == "NURS 417-AC":
-            pass
-        print(course)
         index = 0
         added = False
         students = courseStudent[course]
