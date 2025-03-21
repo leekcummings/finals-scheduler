@@ -46,6 +46,7 @@ def createStudentGroups(df, pop):
 def checkStudentConflicts(students, tests, i):
     conflict = False
     for s in students:
+        # If student has more than 2 tests in a day
         if s in tests[i // MAX_TESTS] and tests[i // MAX_TESTS][s] == 2:
             conflict = True
     return conflict
@@ -56,17 +57,29 @@ def checkCourseTiming(times, schedule, c, i):
     # For every course already in timeslot
     for otherCourse in schedule[i]:
         previousTime = times[otherCourse]
+        # If times aren't the same
         if currentTime != previousTime:
             time = True
     return time
 
 def checkRepeatedStudents(students, schedule, c, i):
     repeat = False
-    currentStudents = students[c]
+    # Keep track of all student sets and number of students
+    scheduledStudents = []
+    totalStudents = 0
+    # Students from unscheduled class
+    scheduledStudents.append(students[c])
+    totalStudents += len(students[c])
+
     for otherCourse in schedule[i]:
-        previousStudents = students[otherCourse]
-        if len(set.intersection(currentStudents, previousStudents)) > 0:
-            repeat = True
+        # Students from previously scheduled classes
+        scheduledStudents.append(students[otherCourse])
+        totalStudents += len(students[otherCourse])
+    
+    # If the union of all student sets has repeats, 
+    # it will be smaller than the total number of students
+    if len(set.union(*scheduledStudents)) < totalStudents:
+        repeat = True
     return repeat
 
 def updateStudentTests(students, tests, i):
@@ -80,7 +93,10 @@ if __name__ == "__main__":
     courseTimes = createTimeslotGroups(df)
 
     # Array of most popular courses (most students)
-    popularCourses = df.groupby(["CourseSection"], sort=False).agg(NumStudents=("SID", "count")).sort_values("NumStudents", ascending=False).index.to_numpy()
+    popularCourses = (df.groupby(["CourseSection"], sort=False)
+                      .agg(NumStudents=("SID", "count"))
+                      .sort_values("NumStudents", ascending=False)
+                      .index.to_numpy())
     courseStudent = createStudentGroups(df, popularCourses)
 
     # An array of exams, each index represents 1 timeslot
