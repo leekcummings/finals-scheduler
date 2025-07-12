@@ -44,26 +44,26 @@ def createStudentGroups(df, pop):
     return courses
 
 def checkStudentConflicts(students, tests, i):
-    conflict = False
     for s in students:
         # If student has more than 2 tests in a day
         if s in tests[i // MAX_TESTS] and tests[i // MAX_TESTS][s] == 2:
-            conflict = True
-    return conflict
+            # Conflict found
+            return True 
+    # No conflicts
+    return False 
 
 def checkCourseTiming(times, schedule, c, i):
-    time = False
     currentTime = times[c]
     # For every course already in timeslot
     for otherCourse in schedule[i]:
         previousTime = times[otherCourse]
         # If times aren't the same
         if currentTime != previousTime:
-            time = True
-    return time
+            return True
+    # All the same time
+    return False
 
 def checkRepeatedStudents(students, schedule, c, i):
-    repeat = False
     # Keep track of all student sets and number of students
     scheduledStudents = []
     totalStudents = 0
@@ -79,8 +79,10 @@ def checkRepeatedStudents(students, schedule, c, i):
     # If the union of all student sets has repeats, 
     # it will be smaller than the total number of students
     if len(set.union(*scheduledStudents)) < totalStudents:
-        repeat = True
-    return repeat
+        # Repeats found
+        return True
+    # No repeats found
+    return False
 
 def updateStudentTests(students, tests, i):
     for s in students:
@@ -116,7 +118,7 @@ if __name__ == "__main__":
             if index // MAX_TESTS not in studentTests:
                 studentTests[index // MAX_TESTS] = {}
 
-            ### CASE 0: INDEX IS EMPTY
+            ### CASE 0: INDEX DOES NOT EXIST
             if index + 1 > len(schedule):
                 studentConflict = checkStudentConflicts(students, studentTests, index)
                 if not studentConflict:
@@ -124,23 +126,34 @@ if __name__ == "__main__":
                     schedule.append([course])
                     studentTests = updateStudentTests(students, studentTests, index)
                     added = True
+                else:
+                    # Append a new empty list, to skip over index
+                    schedule.append([])
             
-            ### CASE 1: INDEX NOT EMPTY
+            ### CASE 1: INDEX IS EMPTY
+            elif len(schedule[index]) == 0:
+                studentConflict = checkStudentConflicts(students, studentTests, index)
+                if not studentConflict:
+                    # Append course in list, as it is first item in index
+                    schedule[index].append(course)
+                    studentTests = updateStudentTests(students, studentTests, index)
+                    added = True
+
+            ### CASE 2: INDEX NOT EMPTY
             # If there are items in current index
             elif len(schedule[index]) > 0:
                 differentTime = checkCourseTiming(courseTimes, schedule, course, index)
                 studentConflict = checkStudentConflicts(students, studentTests, index)
                 # If all times are same or no conflicts, add to schedule
-                ### CASE 1A: CLASS TIMES ARE THE SAME
+                ### CASE 2A: CLASS TIMES ARE THE SAME
                 if not differentTime and not studentConflict:
                     # Add to schedule
                     schedule[index].append(course)
                     studentTests = updateStudentTests(students, studentTests, index)
                     added = True
-                ### CASE 1B: NO REPEATED STUDENTS DURING TIMESLOT
+                ### CASE 2B: NO REPEATED STUDENTS DURING TIMESLOT
                 else:
                     repeatStudents = checkRepeatedStudents(courseStudent, schedule, course, index)
-                    studentConflict = checkStudentConflicts(students, studentTests, index)
                     # If no repeat students or conflicts, add to schedule
                     if not repeatStudents and not studentConflict:
                         schedule[index].append(course)
