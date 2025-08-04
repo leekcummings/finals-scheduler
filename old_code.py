@@ -5,31 +5,32 @@
 
 import numpy as np
 import pandas as pd
-import regex as re
 
 # Max exams in one finals day
 MAX_TESTS = 4
 
-def cleanDF(df):
-    # Remove blank rows
+def cleanDF(df, courses):
     df = df.dropna()
     # Labs match the below pattern with a Course code, 3 numbers, and an L
-    pattern = r"\w* \d{3}L-.*"
-    df = df[~df["CourseSection"].str.contains(pattern)]
-    df = df[~df["CourseSection"].str.contains("SIM 101")]
-    # OPTIONAL: Remove sections from course names
-    # df['CourseSection'] = df['CourseSection'].str.replace(r'-.*', '', regex=True)
+    pattern = r'\w* \d{3}L-.*'
+    df = df[~df['CourseSection'].str.contains(pattern)]
+    df = df[~df['CourseSection'].str.contains('SIM 101')]
+    # Remove classes that don't need final exams
+    filter = [key for key, _ in courses.items() if courses[key]]
+    df['CourseName'] = df['CourseSection'].str.extract(r'(\w* \d{3})')
+    df = df[df['CourseName'].isin(filter)]
+    
     return df
 
 def createTimeslotGroups(df):
-    df = df.drop('SID', axis=1).drop_duplicates().groupby(["Time Slot"], as_index=False)
+    df = df.drop('SID', axis=1).drop_duplicates().groupby(['Time Slot'], as_index=False)
     times = {}
     # Dictionary of timeslot per course
     for time, frame in df:
         for index, course in frame.iterrows():
             # KEY: Course ID
             # VALUE: Timeslot
-            times[course["CourseSection"]] = time[0]
+            times[course['CourseSection']] = time[0]
     return times
 
 def createStudentGroups(df, pop):
@@ -37,7 +38,7 @@ def createStudentGroups(df, pop):
     # Dictionary of students per course
     for course in pop:
         # Get a df of all students in a class
-        students = df.loc[df['CourseSection'] == course]["SID"]
+        students = df.loc[df['CourseSection'] == course]['SID']
         # KEY: Course ID
         # VALUE: Set of student
         courses[course] = set(students.to_numpy().flatten())
@@ -89,15 +90,15 @@ def updateStudentTests(students, tests, i):
         tests[i // MAX_TESTS][s] = tests[i // MAX_TESTS].get(s, 0) + 1
     return tests
 
-if __name__ == "__main__":
+def generationStart(path, courses, maxTests, maxDays):
     # Import CSV of SID and Courses
-    df = cleanDF(pd.read_csv('StudentClassDataFullSet.csv'))
+    df = cleanDF(pd.read_csv(path), courses)
     courseTimes = createTimeslotGroups(df)
 
     # Array of most popular courses (most students)
-    popularCourses = (df.groupby(["CourseSection"], sort=False)
-                      .agg(NumStudents=("SID", "count"))
-                      .sort_values("NumStudents", ascending=False)
+    popularCourses = (df.groupby(['CourseSection'], sort=False)
+                      .agg(NumStudents=('SID', 'count'))
+                      .sort_values('NumStudents', ascending=False)
                       .index.to_numpy())
     courseStudent = createStudentGroups(df, popularCourses)
 
@@ -168,6 +169,6 @@ if __name__ == "__main__":
     for index in range(len(schedule)):
         day = index // MAX_TESTS
         time = index % MAX_TESTS
-        print(f"\n\nDAY {day + 1}: SLOT {time + 1}:")
+        print(f'\n\nDAY {day + 1}: SLOT {time + 1}:')
         print(*sorted(schedule[index]))
-    print(f"Number of slots used: {len(schedule)}")
+    print(f'Number of slots used: {len(schedule)}')
