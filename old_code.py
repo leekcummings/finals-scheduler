@@ -12,9 +12,10 @@ MAX_TESTS = 4
 def cleanDF(df, courses):
     df = df.dropna()
     # Labs match the below pattern with a Course code, 3 numbers, and an L
-    pattern = r'\w* \d{3}L-.*'
+    pattern = r'\w+ \d+L-.*'
     df = df[~df['CourseSection'].str.contains(pattern)]
-    df = df[~df['CourseSection'].str.contains('SIM 101')]
+    df = df[~df['CourseSection'].str.contains('SIM')]
+    df = df[~df['CourseSection'].str.contains('CR')]
     # Remove classes that don't need final exams
     filter = [key for key, _ in courses.items() if courses[key]]
     df['CourseName'] = df['CourseSection'].str.extract(r'(\w* \d{3})')

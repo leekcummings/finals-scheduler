@@ -11,8 +11,8 @@ from pathlib import Path
 from PyQt6.QtWidgets import QPushButton, QFileDialog, QLineEdit, QFormLayout, QWidget, QGridLayout, QScrollArea
 
 from old_code import generationStart
-from WizardPage import WizardPage
-from WrappedLabel import WrappedLabel
+from QtObjects.WizardPage import WizardPage
+from QtObjects.WrappedLabel import WrappedLabel
 
 def introPage(page: WizardPage):        
     page.widgets.append(WrappedLabel('Welcome to the Simmons University Finals Exam Schedule Wizard. '
@@ -25,14 +25,15 @@ def importSpreadsheet(page: WizardPage):
     def getCourses(df: pd.DataFrame):
         """Get courses by dropping unneeded columns, removing labs and SIM classes, and sorting values"""
         
-        df = df[['CourseSection']]
         df = df.dropna()
+        df = df[['CourseSection']]
         # Labs match the below pattern with a Course code, 3 numbers, and an L
-        pattern = r'\w* \d{3}L-.*'
+        pattern = r'\w+ \d+L-.*'
         df = df[~df['CourseSection'].str.contains(pattern)]
         df = df[~df['CourseSection'].str.contains('SIM')]
+        df = df[~df['CourseSection'].str.contains('CR')]
         # Remove course sections from string
-        df['CourseSection'] = df['CourseSection'].str.replace(r'-\d*', '', regex=True)
+        df['CourseSection'] = df['CourseSection'].str.replace(r'-\w*', '', regex=True)
         return df.drop_duplicates().sort_values(by=['CourseSection'])
 
     def readCSV(csv):
@@ -95,7 +96,7 @@ def selectCourses(page: WizardPage):
 
     previousMajor = getMajor(page.wizard().df['CourseSection'][1])
     for i in page.wizard().df['CourseSection']:
-        page.wizard().courses[i] = True
+        page.wizard().courses[i] = False
         button = QPushButton(i)
         button.setCheckable(True)
         currentMajor = getMajor(i)
