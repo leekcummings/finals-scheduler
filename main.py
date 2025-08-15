@@ -1,7 +1,8 @@
 import sys
+from pathlib import Path
 from PyQt6.QtWidgets import QApplication, QWizard
 
-from WizardPage import WizardPage
+from QtObjects.WizardPage import WizardPage
 from subpageContents import (
     introPage, importSpreadsheet, selectCourses,
     customizeDetails, reviewInfo, generateSchedule

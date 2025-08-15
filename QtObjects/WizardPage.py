@@ -1,8 +1,7 @@
-import inspect
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QWizard, QWizardPage, QHBoxLayout, QVBoxLayout, QListWidget, QAbstractItemView, QMessageBox
+from PyQt6.QtWidgets import QWizardPage, QHBoxLayout, QVBoxLayout, QListWidget, QAbstractItemView, QMessageBox
 
-PADDING = 10
+PADDING = 50
 
 class WizardPage(QWizardPage):
     """Class for formatted pages in QWizard application"""
@@ -22,6 +21,7 @@ class WizardPage(QWizardPage):
         self.listView.setCurrentRow(currentIndex)
         # Prevents other items from being highlighted
         self.listView.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+        self.listView.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         # Set list width to minimum possible size + padding
         self.listView.setFixedWidth(self.listView.sizeHintForColumn(0) + PADDING)
 

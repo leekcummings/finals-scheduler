@@ -5,6 +5,8 @@
 
 import numpy as np
 import pandas as pd
+from openpyxl import Workbook
+from openpyxl.styles import *
 
 # Max exams in one finals day
 MAX_TESTS = 4
@@ -12,9 +14,10 @@ MAX_TESTS = 4
 def cleanDF(df, courses):
     df = df.dropna()
     # Labs match the below pattern with a Course code, 3 numbers, and an L
-    pattern = r'\w* \d{3}L-.*'
+    pattern = r'\w+ \d+L-.*'
     df = df[~df['CourseSection'].str.contains(pattern)]
-    df = df[~df['CourseSection'].str.contains('SIM 101')]
+    df = df[~df['CourseSection'].str.contains('SIM')]
+    df = df[~df['CourseSection'].str.contains('CR')]
     # Remove classes that don't need final exams
     filter = [key for key, _ in courses.items() if courses[key]]
     df['CourseName'] = df['CourseSection'].str.extract(r'(\w* \d{3})')
@@ -89,14 +92,6 @@ def updateStudentTests(students, tests, i):
     for s in students:
         tests[i // MAX_TESTS][s] = tests[i // MAX_TESTS].get(s, 0) + 1
     return tests
-
-
-from openpyxl import Workbook
-from openpyxl.styles import *
-
-
-
-
 
 def export_excel(schedule, ntimes, path, compact=False, maxRows=15):
     wb = Workbook()
