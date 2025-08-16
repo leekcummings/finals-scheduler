@@ -8,9 +8,6 @@ import pandas as pd
 from openpyxl import Workbook
 from openpyxl.styles import *
 
-# Max exams in one finals day
-MAX_TESTS = 4
-
 def cleanDF(df, courses):
     df = df.dropna()
     # Labs match the below pattern with a Course code, 3 numbers, and an L
@@ -47,10 +44,10 @@ def createStudentGroups(df, pop):
         courses[course] = set(students.to_numpy().flatten())
     return courses
 
-def checkStudentConflicts(students, tests, i):
+def checkStudentConflicts(students, tests, i, max):
     for s in students:
         # If student has more than 2 tests in a day
-        if s in tests[i // MAX_TESTS] and tests[i // MAX_TESTS][s] == 2:
+        if s in tests[i // max] and tests[i // max][s] == 2:
             # Conflict found
             return True 
     # No conflicts
@@ -88,9 +85,9 @@ def checkRepeatedStudents(students, schedule, c, i):
     # No repeats found
     return False
 
-def updateStudentTests(students, tests, i):
+def updateStudentTests(students, tests, i, max):
     for s in students:
-        tests[i // MAX_TESTS][s] = tests[i // MAX_TESTS].get(s, 0) + 1
+        tests[i // max][s] = tests[i // max].get(s, 0) + 1
     return tests
 
 def export_excel(schedule, ntimes, path, compact=False, maxRows=15):
@@ -244,16 +241,16 @@ def generationStart(path, courses, maxTests, maxDays):
 
         while not added:
             # If the current day doesn't exist in studentTests
-            if index // MAX_TESTS not in studentTests:
-                studentTests[index // MAX_TESTS] = {}
+            if index // maxTests not in studentTests:
+                studentTests[index // maxTests] = {}
 
             ### CASE 0: INDEX DOES NOT EXIST
             if index + 1 > len(schedule):
-                studentConflict = checkStudentConflicts(students, studentTests, index)
+                studentConflict = checkStudentConflicts(students, studentTests, index, maxTests)
                 if not studentConflict:
                     # Append course in list, as it is first item in index
                     schedule.append([course])
-                    studentTests = updateStudentTests(students, studentTests, index)
+                    studentTests = updateStudentTests(students, studentTests, index, maxTests)
                     added = True
                 else:
                     # Append a new empty list, to skip over index
@@ -261,24 +258,24 @@ def generationStart(path, courses, maxTests, maxDays):
             
             ### CASE 1: INDEX IS EMPTY
             elif len(schedule[index]) == 0:
-                studentConflict = checkStudentConflicts(students, studentTests, index)
+                studentConflict = checkStudentConflicts(students, studentTests, index, maxTests)
                 if not studentConflict:
                     # Append course in list, as it is first item in index
                     schedule[index].append(course)
-                    studentTests = updateStudentTests(students, studentTests, index)
+                    studentTests = updateStudentTests(students, studentTests, index, maxTests)
                     added = True
 
             ### CASE 2: INDEX NOT EMPTY
             # If there are items in current index
             elif len(schedule[index]) > 0:
                 differentTime = checkCourseTiming(courseTimes, schedule, course, index)
-                studentConflict = checkStudentConflicts(students, studentTests, index)
+                studentConflict = checkStudentConflicts(students, studentTests, index, maxTests)
                 # If all times are same or no conflicts, add to schedule
                 ### CASE 2A: CLASS TIMES ARE THE SAME
                 if not differentTime and not studentConflict:
                     # Add to schedule
                     schedule[index].append(course)
-                    studentTests = updateStudentTests(students, studentTests, index)
+                    studentTests = updateStudentTests(students, studentTests, index, maxTests)
                     added = True
                 ### CASE 2B: NO REPEATED STUDENTS DURING TIMESLOT
                 else:
@@ -286,7 +283,7 @@ def generationStart(path, courses, maxTests, maxDays):
                     # If no repeat students or conflicts, add to schedule
                     if not repeatStudents and not studentConflict:
                         schedule[index].append(course)
-                        studentTests = updateStudentTests(students, studentTests, index)
+                        studentTests = updateStudentTests(students, studentTests, index, maxTests)
                         added = True
 
             ### CASE 2: NO ACCEPTABLE SLOTS FOUND
@@ -295,8 +292,8 @@ def generationStart(path, courses, maxTests, maxDays):
 
     ### PRINT THE RESULTS
     for index in range(len(schedule)):
-        day = index // MAX_TESTS
-        time = index % MAX_TESTS
+        day = index // maxTests
+        time = index % maxTests
         print(f'\n\nDAY {day + 1}: SLOT {time + 1}:')
         print(*sorted(schedule[index]))
     print(f'Number of slots used: {len(schedule)}')

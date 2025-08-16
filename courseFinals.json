@@ -1,0 +1,17 @@
+{
+    "ART": false,
+    "BIOL": true,
+    "CHEM": true,
+    "COMM": false,
+    "CS": true,
+    "HIST": false,
+    "LTWR": false,
+    "MATH": true,
+    "NURS": true,
+    "POLS": false,
+    "PSYC": true,
+    "SOCI": false,
+    "SPAN": true,
+    "STAT": true,
+    "SW": false
+}

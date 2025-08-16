@@ -4,6 +4,7 @@
 # maxTests = max tests per day
 # maxDays = max days of finals (can be exceeded)
 
+import json
 import numpy as np
 import pandas as pd
 import regex as re
@@ -83,6 +84,9 @@ def selectCourses(page: WizardPage):
             print(f'Course Status Change: {course} = {page.wizard().courses[course]}')
         return f
     
+    with open('courseFinals.json') as f:
+        courseDefaults = json.load(f)
+
     page.widgets.append(WrappedLabel('Below is a list of all the classes given this semester. '
     'Please which classes are and arent giving finals by toggling the button for each course.'))
 
@@ -96,10 +100,17 @@ def selectCourses(page: WizardPage):
 
     previousMajor = getMajor(page.wizard().df['CourseSection'][1])
     for i in page.wizard().df['CourseSection']:
-        page.wizard().courses[i] = False
         button = QPushButton(i)
         button.setCheckable(True)
+
         currentMajor = getMajor(i)
+        if currentMajor in courseDefaults:
+            value = courseDefaults[currentMajor]
+            page.wizard().courses[i] = value
+            button.setChecked(value)
+        else:
+            page.wizard().courses[i] = False
+
         if column == 4 and currentMajor == previousMajor:
             column = 0
             row += 1
@@ -164,4 +175,4 @@ def generateSchedule(page: WizardPage):
     courses = page.wizard().courses
     maxTests = page.wizard().maxTests
     maxDays = page.wizard().maxDays
-    generationStart(path, courses, maxTests, maxDays)
+    generationStart(path, courses, int(maxTests), int(maxDays))
