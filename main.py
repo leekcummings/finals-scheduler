@@ -1,5 +1,4 @@
 import sys
-from pathlib import Path
 from PyQt6.QtWidgets import QApplication, QWizard
 
 from QtObjects.WizardPage import WizardPage
