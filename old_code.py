@@ -291,10 +291,10 @@ def generationStart(path, courses, maxTests, maxDays):
             index += 1
 
     # Swap 1st and 3rd time slots
-    for i in range(len(schedule)):
-        if i % 4 == 2:
-            multiple = i // 4
-            schedule[multiple + 2], schedule[multiple] = schedule[multiple], schedule[multiple + 2]
+    # for i in range(len(schedule)):
+    #     if i % 4 == 2:
+    #         multiple = i // 4
+    #         schedule[multiple + 2], schedule[multiple] = schedule[multiple], schedule[multiple + 2]
 
     ### PRINT THE RESULTS
     for index in range(len(schedule)):

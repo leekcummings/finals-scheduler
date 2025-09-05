@@ -44,7 +44,8 @@ def importSpreadsheet(page: WizardPage):
         page.wizard().filePath = csv
 
     def openFileDialog():
-        filename = QFileDialog.getOpenFileName(page, 'CSV (*.csv);;Excel (*.xlsx)', '/home/leek/Coding')
+        downloads = str(Path.home() / "Downloads")
+        filename = QFileDialog.getOpenFileName(page, 'CSV (*.csv);;Excel (*.xlsx)', downloads)
         # If selected file exists, try to parse data
         if filename[0]:
             path = Path(filename[0])
@@ -171,6 +172,8 @@ def reviewInfo(page: WizardPage):
     page.layout.addLayout(layout)
 
 def generateSchedule(page: WizardPage):
+    label = WrappedLabel('Your file has been generated and saved to "final_schedule.xlsx" in this folder.')
+    page.widgets.append(label)
     path = page.wizard().filePath
     courses = page.wizard().courses
     maxTests = page.wizard().maxTests
