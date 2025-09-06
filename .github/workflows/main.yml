@@ -33,7 +33,7 @@ jobs:
         run: pyinstaller --onefile main.py
 
       - name: Current directory
-        run: ls -l
+        run: ls dist/ -l
   
       - name: Rename executable
         run: |
