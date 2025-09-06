@@ -1,19 +1,23 @@
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QWizardPage, QHBoxLayout, QVBoxLayout, QListWidget, QAbstractItemView, QMessageBox
+from PyQt6.QtWidgets import QLabel, QWizardPage, QHBoxLayout, QVBoxLayout, QListWidget, QAbstractItemView, QMessageBox
 
 PADDING = 50
+
+class WrappedLabel(QLabel):
+    def __init__(self, text):
+        super().__init__(text)
+        self.setWordWrap(True)
+        self.adjustSize()
 
 class WizardPage(QWizardPage):
     """Class for formatted pages in QWizard application"""
     
-    def __init__(self, wizardPages: list[str], currentIndex: int, updateLayout: callable, resetPage: bool) -> None:
+    def __init__(self, wizardPages: list[str], currentIndex: int) -> None:
         super().__init__()
         self.setTitle(wizardPages[currentIndex])
 
         # Blank list for widgets to be added to
         self.widgets = []
-        self.updateLayout = updateLayout
-        self.resetPage = resetPage
 
         # Wizard page directory. Adds all pages to list and highlights current paage
         self.listView = QListWidget()
@@ -49,14 +53,10 @@ class WizardPage(QWizardPage):
 
     def initializePage(self):
         """Add widgets and data to page, runs again every time page is switched to"""
-        if self.resetPage:
-            self.resetLayout(self.layout)
-        if self.resetPage or self.layout.isEmpty():
-            self.updateLayout(self)
-            self.addWidgets(self.widgets)
-            self.layout.addStretch()
+        pass
 
     def addWidgets(self, list: list):
+        """Add all widgets from a list to vertical layout"""
         for widget in list:
             self.layout.addWidget(widget)
         self.widgets.clear()
