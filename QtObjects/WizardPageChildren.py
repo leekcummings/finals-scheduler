@@ -84,6 +84,9 @@ class SelectCourses(WizardPage):
         # Initialize df to compare
         self.filePath = ''
 
+        with open('courseFinals.json') as f:
+                self.courseDefaults = json.load(f)
+
     def initializePage(self):
         # If there is an updated df, reload the page
         if self.wizard().filePath != self.filePath:
@@ -92,9 +95,6 @@ class SelectCourses(WizardPage):
 
             self.layout.addWidget(WrappedLabel('Below is a list of all the classes given this semester. '
             'Please which classes are and arent giving finals by toggling the button for each course.'))
-
-            with open('courseFinals.json') as f:
-                courseDefaults = json.load(f)
 
             # Store selected courses in wizard
             self.wizard().courses = {}
@@ -116,8 +116,8 @@ class SelectCourses(WizardPage):
                 currentMajor = self.getMajor(i)
                 # Use preset values to determine if course have finals
                 # If no preset, assume no final
-                if currentMajor in courseDefaults:
-                    value = courseDefaults[currentMajor]
+                if currentMajor in self.courseDefaults:
+                    value = self.courseDefaults[currentMajor]
                     self.wizard().courses[i] = value
                     button.setChecked(value)
                 else:
