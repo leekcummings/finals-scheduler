@@ -1,4 +1,7 @@
 import json
+import os
+import sys
+
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -84,8 +87,9 @@ class SelectCourses(WizardPage):
         # Initialize df to compare
         self.filePath = ''
 
-        with open('courseFinals.json') as f:
-                self.courseDefaults = json.load(f)
+        # Pyinstaller fix to find file path
+        with open(self.resource_path('res/courseFinals.json')) as f:
+            self.courseDefaults = json.load(f)
 
     def initializePage(self):
         # If there is an updated df, reload the page
@@ -144,6 +148,16 @@ class SelectCourses(WizardPage):
             # Add widgets to layout
             self.addWidgets(self.widgets)
 
+    # Taken from https://stackoverflow.com/a/13790741
+    def resource_path(self, relative_path):
+        """ Get absolute path to resource, works for dev and for PyInstaller """
+        try:
+            # PyInstaller creates a temp folder and stores path in _MEIPASS
+            base_path = sys._MEIPASS
+        except Exception:
+            base_path = os.path.abspath(".")
+
+        return os.path.join(base_path, relative_path)
 
     def getMajor(self, course: str):
         pattern = r'(\w*) \d{3}'
